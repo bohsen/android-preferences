@@ -18,37 +18,30 @@ package com.example.androidx.preference.sample
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentFactory
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+
+
 
 private const val TITLE_TAG = "settingsActivityTitle"
 
 class MainActivity : AppCompatActivity(),
-        PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
+    PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        supportFragmentManager.setFragmentFactory(FragmentFactoryImpl());
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         if (savedInstanceState == null) {
             supportFragmentManager
-                    .beginTransaction()
-                    .replace(R.id.settings, SettingsFragment())
-                    .commit()
-        } else {
-            title = savedInstanceState.getCharSequence(TITLE_TAG)
+                .beginTransaction()
+                .replace(R.id.settings, SettingsFragment())
+                .commit()
         }
-        supportFragmentManager.addOnBackStackChangedListener {
-            if (supportFragmentManager.backStackEntryCount == 0) {
-                setTitle(R.string.title)
-            }
-        }
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-    }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        // Save current activity title so we can set it again after a configuration change
-        outState.putCharSequence(TITLE_TAG, title)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -59,24 +52,22 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onPreferenceStartFragment(
-            caller: PreferenceFragmentCompat,
-            pref: Preference
+        caller: PreferenceFragmentCompat,
+        pref: Preference
     ): Boolean {
         // Instantiate the new Fragment
         val args = pref.extras
         val fragment = supportFragmentManager.fragmentFactory.instantiate(
-                classLoader,
-                pref.fragment
-        ).apply {
+            classLoader,
+            pref.fragment).apply {
             arguments = args
             setTargetFragment(caller, 0)
         }
         // Replace the existing Fragment with the new Fragment
         supportFragmentManager.beginTransaction()
-                .replace(R.id.settings, fragment)
-                .addToBackStack(null)
-                .commit()
-        title = pref.title
+            .replace(R.id.settings, fragment)
+            .addToBackStack(null)
+            .commit()
         return true
     }
 
@@ -126,3 +117,25 @@ class MainActivity : AppCompatActivity(),
         }
     }
 }
+
+class FragmentFactoryImpl : FragmentFactory() {
+
+
+    fun instantiate(classLoader: ClassLoader, className: String, args: Bundle?): Fragment {
+        val clazz = loadFragmentClass(classLoader, className)
+
+        var fragment: Fragment? = null
+        if (clazz == MainActivity.SettingsFragment::class.java) {
+            fragment = MainActivity.SettingsFragment()
+        } else {
+            return super.instantiate(classLoader, className)
+        }
+
+        if (args != null) {
+            fragment.setArguments(args)
+        }
+
+        return fragment
+    }
+}
+
